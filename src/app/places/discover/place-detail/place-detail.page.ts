@@ -1,8 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { NavController } from '@ionic/angular';
+import { 
+  NavController, 
+  ModalController, 
+  ActionSheetController 
+} from '@ionic/angular';
+
 import { PlacesService } from '../../places.service';
 import { Place } from '../../place.model';
+import { CreateBookingComponent } from '../../../bookings/create-booking/create-booking.component';
 
 @Component({
   selector: 'app-place-detail',
@@ -15,25 +21,70 @@ export class PlaceDetailPage implements OnInit {
   constructor(
     private _navController: NavController,
     private _route: ActivatedRoute,
-    private _placesService: PlacesService
+    private _placesService: PlacesService,
+    private _modalController: ModalController,
+    private _actionSheetController: ActionSheetController
   ) { }
 
   ngOnInit(): void {
     this
     ._route.paramMap
-    .subscribe(
-      paramMap => {
-        console.log(paramMap);
-        this.findPlaceByIdWithParametersMap(paramMap)
-      }
-    );
+    .subscribe(paramMap => {
+        this.findPlaceByIdWithParametersMap(paramMap);
+    });
   }
 
   onBookPlace(): void {
-    this._navController.navigateBack('/places/tabs/discover');
+    this._actionSheetController.create({
+      header: 'Choose an Action',
+      buttons: [
+        {
+          text: 'Select Date',
+          handler: () => {
+            this.openBookingModal('select');
+          }
+        },
+        {
+          text: 'Random Date',
+          handler: () => {
+            this.openBookingModal("random");
+          }
+        },
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        }
+      ]
+    })
+    .then(actionSheetElement => {
+      actionSheetElement.present();
+    });
   }
 
-  private findPlaceByIdWithParametersMap(paramMap: ParamMap) {
+  private openBookingModal(mode: 'select' | 'random'): void {
+    console.log(mode);
+
+    this._modalController
+    .create({ 
+      component: CreateBookingComponent,
+      componentProps: {
+        selectedPlace: this.place
+      } 
+    })
+    .then(modalElement => {
+      modalElement.present();
+      return modalElement.onDidDismiss();
+    })
+    .then(resultData => {
+      console.log(resultData.data, resultData.role);
+
+      if (resultData.role === 'confirm') {
+        console.log("BOOKED!");
+      }
+    });
+  }
+
+  private findPlaceByIdWithParametersMap(paramMap: ParamMap): void {
     if (this.placeIdNotExistsInParameters(paramMap)) {
       this._navController.navigateBack('/places/tabs/discover');
       return;
