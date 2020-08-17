@@ -31,7 +31,7 @@ export class OfferBookingsPage implements OnInit {
       this._navController.navigateBack('/places/tabs/offers');
       return;
     }
-    const placeIdFromParam = parseInt(paramMap.get('placeId'));
+    const placeIdFromParam = paramMap.get('placeId');
     this.place = this._placesService.getPlaceById(placeIdFromParam);
   }
 

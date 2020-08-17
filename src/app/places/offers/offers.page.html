@@ -17,29 +17,15 @@
         <ion-list>
           
           <ion-item-sliding
-            *ngFor="let placeOffer of placeOffers"
+            *ngFor="let offer of placeOffers"
             #slidingItem>
             
-            <ion-item
-              [routerLink]="['/', 'places', 'tabs', 'offers', placeOffer?.id]"
-              detail>
-              <ion-thumbnail 
-                slot="start">
-                <ion-img 
-                  [src]="placeOffer?.imageUrl">
-                </ion-img>
-              </ion-thumbnail>
-              <ion-label>
-                <h2>
-                  {{ placeOffer?.title }}
-                </h2>
-              </ion-label>
-            </ion-item>
+            <app-offer-item [offer]="offer"></app-offer-item>
             
             <ion-item-options>
               <ion-item-option 
                 color="primary" 
-                (click)="onEdit(placeOffer.id, slidingItem)">
+                (click)="onEdit(offer.id, slidingItem)">
                 <ion-icon name="create-outline" slot="icon-only"></ion-icon>
               </ion-item-option>
             </ion-item-options>

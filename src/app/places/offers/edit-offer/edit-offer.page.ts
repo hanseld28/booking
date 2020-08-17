@@ -1,8 +1,11 @@
+import { NavController } from '@ionic/angular';
+
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, ParamMap } from '@angular/router';
+import { FormGroup, FormControl, Validators } from '@angular/forms';
+
 import { Place } from '../../place.model';
 import { PlacesService } from '../../places.service';
-import { ActivatedRoute, ParamMap } from '@angular/router';
-import { NavController } from '@ionic/angular';
 
 @Component({
   selector: 'app-edit-offer',
@@ -11,6 +14,7 @@ import { NavController } from '@ionic/angular';
 })
 export class EditOfferPage implements OnInit {
   public place: Place;
+  public form: FormGroup;
 
   constructor(
     private _route: ActivatedRoute,
@@ -19,14 +23,50 @@ export class EditOfferPage implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this
-    ._route.paramMap
-    .subscribe(
-      paramMap => {
-        console.log(paramMap);
-        this.findPlaceByIdWithParametersMap(paramMap)
-      }
-    );
+    this.subscribeToParamMap();
+    this.initializeForm();
+  }
+
+  onUpdateOffer(): void {
+    if (!this.form.valid) {
+      return;
+    }
+    console.log(this.form);
+  } 
+
+  private subscribeToParamMap(): void {
+    this._route.paramMap
+      .subscribe(
+        paramMap => {
+          console.log(paramMap);
+          this.findPlaceByIdWithParametersMap(paramMap)
+        }
+      );
+  }
+
+  private initializeForm(): void {
+    this.form = new FormGroup({
+      title: new FormControl(this.place.title, {
+        updateOn: 'blur',
+        validators: [
+          Validators.required
+        ]
+      }),
+      description: new FormControl(this.place.description, {
+        updateOn: "blur",
+        validators: [
+          Validators.required, 
+          Validators.maxLength(180)
+        ]
+      }),
+      price: new FormControl(this.place.price, {
+        updateOn: 'blur',
+        validators: [
+          Validators.required,
+          Validators.min(1)
+        ]
+      })
+    });
   }
 
   private findPlaceByIdWithParametersMap(paramMap: ParamMap) {
@@ -34,7 +74,7 @@ export class EditOfferPage implements OnInit {
       this._navController.navigateBack('/places/tabs/offers');
       return;
     }
-    const placeIdFromParam = parseInt(paramMap.get('placeId'));
+    const placeIdFromParam = paramMap.get('placeId');
     this.place = this._placesService.getPlaceById(placeIdFromParam);
   }
   

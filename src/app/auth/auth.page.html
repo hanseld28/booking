@@ -1,21 +1,83 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Authenticate</ion-title>
+    <ion-title>{{ isSignIn ? 'Sign In' : 'Sign Up'}}</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-  <ion-list>
-    <ion-item>
-      <ion-label position="floating">E-mail</ion-label>
-      <ion-input type="text"></ion-input>
-    </ion-item>
-    <ion-item>
-      <ion-label position="floating">Password</ion-label>
-      <ion-input type="password"></ion-input>
-    </ion-item>
-  </ion-list>
-  <ion-button color="primary" (click)="onSignIn()">
-    Sign in
-  </ion-button>
+  <form #authForm="ngForm" (ngSubmit)="onSubmit(authForm)">
+    <ion-grid>
+      <ion-row>
+        <ion-col 
+          size-sm="6" size-md="6" 
+          offset-sm="3" offset-md="3">
+
+          <ion-list>
+            <ion-item>
+              <ion-label position="floating">E-mail</ion-label>
+              <ion-input 
+                type="email"
+                ngModel
+                name="email"
+                required
+                email
+                #emailControl="ngModel"
+              ></ion-input>
+            </ion-item>
+            <ion-item   
+              *ngIf="!emailControl.valid && emailControl.touched"
+              lines="none">
+              <ion-label color="danger" class="message-to-invalid-field">
+                Should be a valid email address.
+              </ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label position="floating">Password</ion-label>
+              <ion-input 
+                type="password"
+                ngModel
+                name="password"
+                required
+                minlength="8"
+                #passwordControl="ngModel"
+              ></ion-input>
+            </ion-item>
+            <ion-item   
+              *ngIf="!passwordControl.valid && passwordControl.touched"
+              lines="none">
+              <ion-label color="danger" class="message-to-invalid-field">
+                Should at least be 8 characters long.
+              </ion-label>
+            </ion-item>
+          </ion-list>   
+
+        </ion-col>
+      </ion-row>
+
+      <ion-row>
+        <ion-col 
+          size-sm="6" size-md="6" 
+          offset-sm="3" offset-md="3">
+
+          <ion-button 
+            type="button"
+            color="primary" 
+            fill="clear" 
+            expand="block"
+            (click)="onSwitchAuthMode()">
+            Switch to {{ isSignIn ? 'Sign up' : 'Sign in'}}
+          </ion-button>   
+
+          <ion-button 
+            type="submit"
+            color="primary" 
+            expand="block" 
+            [disabled]="!authForm.valid">
+            {{ isSignIn ? 'Sign in' : 'Sign up'}}
+          </ion-button>
+        
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </form>
 </ion-content>

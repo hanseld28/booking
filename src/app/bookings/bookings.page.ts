@@ -21,7 +21,7 @@ export class BookingsPage implements OnInit {
     this.loadedBookings = this._bookingService.bookings;
   }
 
-  onCancelBooking(offerId: number, slidingElement: IonItemSliding): void {
+  onCancelBooking(offerId: string, slidingElement: IonItemSliding): void {
     slidingElement.close();
     // cancel booking with offerId
   }

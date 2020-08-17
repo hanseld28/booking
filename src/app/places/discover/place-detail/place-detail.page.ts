@@ -62,13 +62,12 @@ export class PlaceDetailPage implements OnInit {
   }
 
   private openBookingModal(mode: 'select' | 'random'): void {
-    console.log(mode);
-
     this._modalController
     .create({ 
       component: CreateBookingComponent,
       componentProps: {
-        selectedPlace: this.place
+        selectedPlace: this.place,
+        selectedMode: mode
       } 
     })
     .then(modalElement => {
@@ -89,7 +88,7 @@ export class PlaceDetailPage implements OnInit {
       this._navController.navigateBack('/places/tabs/discover');
       return;
     }
-    const placeIdFromParam = parseInt(paramMap.get('placeId'));
+    const placeIdFromParam = paramMap.get('placeId');
     this.place = this._placesService.getPlaceById(placeIdFromParam);
   }
   

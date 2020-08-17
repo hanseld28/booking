@@ -21,7 +21,7 @@ export class OffersPage implements OnInit {
     this.placeOffers = this._placesService.places;
   }
 
-  onEdit(offerId: number, slidingItem: IonItemSliding): void {
+  onEdit(offerId: string, slidingItem: IonItemSliding): void {
     slidingItem.close();
     this._router.navigate(['/', 'places', 'tabs', 'offers', 'edit', offerId]);
     console.log(`Editing item with id ${offerId}`);

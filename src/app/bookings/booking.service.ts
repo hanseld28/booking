@@ -13,23 +13,23 @@ export class BookingService {
     private seed(): void {
         this._bookings = [
           new Booking(
-            1, 
-            1,
-            1,
+            '1', 
+            '1',
+            '1',
             'Manhattan Mansion', 
             2
           ),
           new Booking(
-            2, 
-            2,
-            1,
+            '2', 
+            '2',
+            '1',
             'L\'Amour Toujuors',  
             3
           ),
           new Booking(
-            3, 
-            3,
-            1,
+            '3', 
+            '3',
+            '1',
             'The Foggy Palace', 
             4
           ),

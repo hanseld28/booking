@@ -1,8 +1,8 @@
 export class Booking {
     constructor(
-        public id: number,
-        public placeId: number,
-        public userId: number,
+        public id: string,
+        public placeId: string,
+        public userId: string,
         public placeTitle: string,
         public guestNumber: number
     ) {}
