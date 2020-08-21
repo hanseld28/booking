@@ -1,37 +1,53 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { 
   NavController, 
   ModalController, 
-  ActionSheetController 
+  ActionSheetController, 
+  LoadingController
 } from '@ionic/angular';
 
 import { PlacesService } from '../../places.service';
 import { Place } from '../../place.model';
 import { CreateBookingComponent } from '../../../bookings/create-booking/create-booking.component';
+import { Subscription } from 'rxjs';
+import { BookingService } from 'src/app/bookings/booking.service';
+import { NewBooking } from 'src/app/bookings/new-booking.model';
+import { AuthService } from 'src/app/auth/auth.service';
 
 @Component({
   selector: 'app-place-detail',
   templateUrl: './place-detail.page.html',
   styleUrls: ['./place-detail.page.scss'],
 })
-export class PlaceDetailPage implements OnInit {
+export class PlaceDetailPage implements OnInit, OnDestroy {
   public place: Place;
-  
+  public isBookable: boolean;
+  private _placeSubscription: Subscription;
+
+
   constructor(
+    private _placesService: PlacesService,
+    private _bookingService: BookingService,
+    private _authService: AuthService,
     private _navController: NavController,
     private _route: ActivatedRoute,
-    private _placesService: PlacesService,
     private _modalController: ModalController,
-    private _actionSheetController: ActionSheetController
+    private _actionSheetController: ActionSheetController,
+    private _loadingController: LoadingController
   ) { }
 
   ngOnInit(): void {
-    this
-    ._route.paramMap
+    this._route.paramMap
     .subscribe(paramMap => {
-        this.findPlaceByIdWithParametersMap(paramMap);
+      this.findAndFillPlaceByIdWithParametersMap(paramMap);
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this._placeSubscription) {
+      this._placeSubscription.unsubscribe();
+    }
   }
 
   onBookPlace(): void {
@@ -47,7 +63,7 @@ export class PlaceDetailPage implements OnInit {
         {
           text: 'Random Date',
           handler: () => {
-            this.openBookingModal("random");
+            this.openBookingModal('random');
           }
         },
         {
@@ -75,21 +91,55 @@ export class PlaceDetailPage implements OnInit {
       return modalElement.onDidDismiss();
     })
     .then(resultData => {
-      console.log(resultData.data, resultData.role);
-
       if (resultData.role === 'confirm') {
-        console.log("BOOKED!");
+        this._loadingController
+        .create({ 
+          message: 'Booking place...' 
+        })
+        .then(loadingElement => {
+          loadingElement.present();
+          const { 
+            firstName, 
+            lastName, 
+            guestNumber, 
+            startDate, 
+            endDate 
+          } = resultData.data.bookingData;
+  
+          this._bookingService
+          .addBooking(
+            this.place.id,
+            this.place.title,
+            this.place.imageUrl,
+            firstName,
+            lastName,
+            guestNumber,
+            startDate,
+            endDate
+          )
+          .subscribe(
+            function() {
+              loadingElement.dismiss();
+            }
+          );
+        });
       }
     });
   }
 
-  private findPlaceByIdWithParametersMap(paramMap: ParamMap): void {
+  private findAndFillPlaceByIdWithParametersMap(paramMap: ParamMap): void {
     if (this.placeIdNotExistsInParameters(paramMap)) {
       this._navController.navigateBack('/places/tabs/discover');
       return;
     }
     const placeIdFromParam = paramMap.get('placeId');
-    this.place = this._placesService.getPlaceById(placeIdFromParam);
+    
+    this._placeSubscription = this._placesService
+    .getPlaceById(placeIdFromParam)
+    .subscribe(place => {
+      this.place = place;
+      this.isBookable = place.userId !== this._authService.userId;
+    });
   }
   
   private placeIdExistsInParameters(paramMap: ParamMap): boolean {

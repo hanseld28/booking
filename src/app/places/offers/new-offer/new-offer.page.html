@@ -113,7 +113,7 @@
             <ion-datetime 
               min='2020-08-05' 
               max='2050-08-01'
-              formControlName="dateFrom"
+              formControlName="availableFrom"
             ></ion-datetime>
           </ion-item>
         </ion-col>
@@ -126,7 +126,7 @@
             <ion-datetime 
               min='2020-08-05' 
               max='2050-08-01'
-              formControlName="dateTo"
+              formControlName="availableTo"
             ></ion-datetime>
           </ion-item>
         </ion-col>
@@ -137,8 +137,8 @@
           size-sm="3" size-md="3"
           offset-sm="3" offset-md="3"
           *ngIf="
-            !form.get('dateFrom').valid && 
-            form.get('dateFrom').touched">
+            !form.get('availableFrom').valid && 
+            form.get('availableFrom').touched">
           <p class="message-to-invalid-field">
             Available date from is required.
           </p>
@@ -146,8 +146,8 @@
         <ion-col 
           size-sm="3" size-md="3"
           *ngIf="
-            !form.get('dateTo').valid && 
-            form.get('dateTo').touched">
+            !form.get('availableTo').valid && 
+            form.get('availableTo').touched">
           <p class="message-to-invalid-field">
             Available date to is required.
           </p>

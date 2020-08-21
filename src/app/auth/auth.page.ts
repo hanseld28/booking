@@ -13,7 +13,6 @@ import { NgForm } from '@angular/forms';
 })
 export class AuthPage implements OnInit {
   private _isSignIn: boolean = true;
-  private _messageLoading: string;
 
   constructor(
     private _authService: AuthService,
@@ -34,14 +33,16 @@ export class AuthPage implements OnInit {
     .then(loadingElement => {
       loadingElement.present();
       
-      setTimeout(() => {
-        loadingElement.dismiss();
-        this._router.navigateByUrl('/places/tabs/discover');          
-      }, 1000);
+      setTimeout(
+        (function() {
+          loadingElement.dismiss();
+          this._router.navigateByUrl('/places/tabs/discover');          
+        }).bind(this)
+        , 1000);
     });
   }
 
-  get isSignIn() {
+  get isSignIn(): boolean {
     return this._isSignIn;
   }
 

@@ -1,8 +1,6 @@
-export class Booking {
+export class NewBooking {
     constructor(
-        public id: string,
         public placeId: string,
-        public userId: string,
         public placeTitle: string,
         public placeImage: string,
         public firstName: string,
