@@ -1,48 +1,135 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { take, map, tap, switchMap } from 'rxjs/operators';
+
+import { AuthService } from '../auth/auth.service';
 
 import { Place } from './place.model';
 import { NewPlaceOffer } from './offers/new-offer/new-place-offer.model';
-import { AuthService } from '../auth/auth.service';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { take, map, filter, tap, delay } from 'rxjs/operators';
 import { EditPlaceOffer } from './offers/edit-offer/edit-place-offer.model';
+import { apiUrlBuilder } from '../../util/api-url-builder';
+import { FirebaseEntityFileName } from '../../util/firebase-entity-file-name';
+
+interface PlaceDTO {
+  title: string,
+  description: string,
+  price: number,​
+  imageUrl: string,​
+  userId: string
+  availableFrom: string,
+  availableTo: string,
+}
+
+interface FirebaseList<T> {
+  [key: string]: T
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class PlacesService {
   private _places: BehaviorSubject<Place[]>;
+  private OFFERED_PLACES_BASE_URL: string; 
 
   constructor(
-    private _authService: AuthService
+    private _authService: AuthService,
+    private _httpClient: HttpClient
   ) { 
-    this.seed();
+    this._places = new BehaviorSubject<Place[]>([]);
+    this.OFFERED_PLACES_BASE_URL = apiUrlBuilder({
+      buildedUrl: FirebaseEntityFileName.OFFERED_PLACES, 
+      endWithJson: false
+    });
   }
 
   get places(): Observable<Place[]> {
     return this._places.asObservable();
   }
 
-  getPlaceById(id: string): Observable<Place>{
-    return this._places.pipe(
-      take(1),
-      map(places => {
-        return { 
-          ...places
-          .find(
-            function(place: Place) { 
-              return place.id === id; 
+  fetchPlaces(): Observable<Place[]> {
+    return this._httpClient
+      .get<FirebaseList<PlaceDTO>>(
+        apiUrlBuilder({
+          buildedUrl: this.OFFERED_PLACES_BASE_URL, 
+          endWithJson: true
+        })
+      )
+      .pipe(
+        map(responseData => {
+          const places = [];
+          
+          for (const key in responseData) {
+            if (responseData.hasOwnProperty(key)) {
+              const { 
+                title, 
+                description, 
+                price, 
+                imageUrl, 
+                userId,
+                availableFrom, 
+                availableTo 
+              } = responseData[key];
+              
+              places.push(
+                new Place(
+                  key, 
+                  title, 
+                  description, 
+                  imageUrl, 
+                  price, 
+                  new Date(availableFrom), 
+                  new Date(availableTo), 
+                  userId
+                )
+              );
             }
-          ) 
-        }
-      })
-    );  
+          }
+          return places;
+        }),
+        tap(places => {
+          this._places.next(places);
+        })
+      );
   }
 
-  addPlace(newPlaceOffer: NewPlaceOffer): Observable<Place[]> {
-    const { title, description, price, availableFrom, availableTo } = newPlaceOffer;
-    const placeId = Math.round(Math.random() * 501).toString();
-    const imageUrl = 'https://sanfrancisco.cbslocal.com/wp-content/uploads/sites/15116056/2016/09/465194539.jpg';
+  getPlaceById(id: string): Observable<Place>{
+    return this._httpClient
+      .get<PlaceDTO>(
+        apiUrlBuilder({
+          buildedUrl: this.OFFERED_PLACES_BASE_URL, 
+          endWithJson: true,
+          params: [id]
+        })
+      )
+      .pipe(
+        map(({ title, description, imageUrl, price, availableFrom, availableTo, userId }: PlaceDTO) => {
+          return new Place(
+            id, 
+            title, 
+            description, 
+            imageUrl, 
+            price, 
+            new Date(availableFrom), 
+            new Date(availableTo), 
+            userId
+          );
+        })
+      )
+  }
+
+  addPlace(newPlaceOffer: NewPlaceOffer): Observable<any> {
+    const { 
+      title, 
+      description, 
+      price, 
+      availableFrom, 
+      availableTo 
+    } = newPlaceOffer;
+
+    const placeId = null;
+    const imageUrl = 'https://1001freedownloads.s3.amazonaws.com/vector/thumb/75285/location_icon.png';
     const userId = this._authService.userId;
 
     const newPlace = new Place(
@@ -56,24 +143,52 @@ export class PlacesService {
       userId
     );
 
-    return this._places.pipe(
-      take(1),
-      delay(1000),
-      tap(places => {
-        this._places.next(places.concat(newPlace));
-      })
-    );
+    let generatedId: string;
+
+    return this._httpClient
+      .post<{ name: string }>(
+        apiUrlBuilder({
+          buildedUrl: this.OFFERED_PLACES_BASE_URL, 
+          endWithJson: true
+        }), 
+        { 
+          ...newPlace, 
+          id: null 
+        }
+      )
+      .pipe(
+        switchMap(({ name }) => {
+          generatedId = name;
+          return this.places;
+        }),
+        take(1),
+        tap(places => {
+          newPlace.id = generatedId;
+          this._places.next(places.concat(newPlace));
+        })
+      );
   }
 
-  updatePlace({ id, title, description, price }: EditPlaceOffer): Observable<Place[]> {
+  updatePlace({ 
+    id, 
+    title, 
+    description, 
+    price 
+  }: EditPlaceOffer): Observable<Place[]>{
+    let updatedPlaces: Place[];
+
     return this._places.pipe(
       take(1),
-      delay(1000),
-      tap(places => {
+      switchMap(places => {
+        return (!places || places.length <= 0) 
+          ? this.fetchPlaces() 
+          : of(places);
+      }),
+      switchMap(places => {
         const updatedPlaceIndex = places.findIndex(existingPlace => {
           return existingPlace.id === id;
         });
-        const updatedPlaces = [...places];
+        updatedPlaces = [...places];
         const { 
           imageUrl, 
           availableFrom, 
@@ -91,96 +206,20 @@ export class PlacesService {
           availableTo,
           userId
         );
-        
+        const updatedPlace = updatedPlaces[updatedPlaceIndex];
+
+        return this._httpClient.put<Place[]>(
+          apiUrlBuilder({
+            buildedUrl: this.OFFERED_PLACES_BASE_URL, 
+            endWithJson: true,
+            params: [updatedPlace.id]
+          }),
+          { ...updatedPlace, id: null }
+        )
+      }),
+      tap(() => {
         this._places.next(updatedPlaces);
       })
-    );
-  }
-
-  private seed(): void {
-    this._places = new BehaviorSubject(
-      [
-        new Place(
-          '1', 
-          'Manhattan Mansion', 
-          'In the heart of New York City.', 
-          'https://imgs.6sqft.com/wp-content/uploads/2014/06/21042533/Carnegie-Mansion-nyc.jpg', 
-          159.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhsk91ks323'
-        ),
-        new Place(
-          '2', 
-          'L\'Amour Toujuors', 
-          'A romantic place in Paris.', 
-          'https://media-cdn.tripadvisor.com/media/photo-s/16/0b/96/09/hotel-amour.jpg',
-          189.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhsk91ks1422'
-        ),
-        new Place(
-          '3', 
-          'The Foggy Palace', 
-          'Not your average city trip.', 
-          'https://sanfrancisco.cbslocal.com/wp-content/uploads/sites/15116056/2016/09/465194539.jpg',
-          99.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhs328s'
-        ),
-        new Place(
-          '4', 
-          'Manhattan Mansion', 
-          'In the heart of New York City.', 
-          'https://imgs.6sqft.com/wp-content/uploads/2014/06/21042533/Carnegie-Mansion-nyc.jpg', 
-          159.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhsk91ks'
-        ),
-        new Place(
-          '5', 
-          'L\'Amour Toujuors', 
-          'A romantic place in Paris.', 
-          'https://media-cdn.tripadvisor.com/media/photo-s/16/0b/96/09/hotel-amour.jpg',
-          189.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhsk91ks'
-        ),
-        new Place(
-          '6', 
-          'The Foggy Palace', 
-          'Not your average city trip.', 
-          'https://sanfrancisco.cbslocal.com/wp-content/uploads/sites/15116056/2016/09/465194539.jpg',
-          99.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhsk91ks'
-        ),
-        new Place(
-          '7', 
-          'Manhattan Mansion', 
-          'In the heart of New York City.', 
-          'https://imgs.6sqft.com/wp-content/uploads/2014/06/21042533/Carnegie-Mansion-nyc.jpg', 
-          159.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhsk91ksaklsjsla'
-        ),
-        new Place(
-          '8', 
-          'L\'Amour Toujuors (TEST)', 
-          'A romantic place in Paris.', 
-          'https://media-cdn.tripadvisor.com/media/photo-s/16/0b/96/09/hotel-amour.jpg',
-          189.99,
-          new Date('2020-08-13'),
-          new Date('2020-12-31'),
-          'sj29dhsk91ks'
-        )
-      ]
     );
   }
 }

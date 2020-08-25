@@ -11,8 +11,8 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./bookings.page.scss'],
 })
 export class BookingsPage implements OnInit, OnDestroy {
-
-  loadedBookings: Booking[];
+  public loadedBookings: Booking[];
+  public isLoading: boolean;
   private _bookingSubscription: Subscription;
 
   constructor(
@@ -21,17 +21,18 @@ export class BookingsPage implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    this._bookingSubscription = this._bookingService.bookings.subscribe(
-      bookings => {
+    this._bookingSubscription = this._bookingService.bookings
+      .subscribe(bookings => {
         this.loadedBookings = bookings;
-      }
-    );
+      });
   }
 
-  ngOnDestroy() {
-    if (this._bookingSubscription) {
-      this._bookingSubscription.unsubscribe();
-    }
+  ionViewWillEnter() {
+    this.isLoading = true;
+    this._bookingService.fetchBookings()
+      .subscribe(() => {
+        this.isLoading = false;
+      });
   }
 
   onCancelBooking(bookingId: string, slidingElement: IonItemSliding): void {
@@ -41,19 +42,19 @@ export class BookingsPage implements OnInit, OnDestroy {
     .create({
       message: 'Cancelling...'
     })
-    .then(
-      (function (loadingElement: HTMLIonLoadingElement) {
+    .then(loadingElement => {
         loadingElement.present();
         
-        this._bookingSubscription = this._bookingService
-        .cancelBooking(bookingId)
-        .subscribe(
-          function() {
+        this._bookingSubscription = this._bookingService.cancelBooking(bookingId)
+          .subscribe(() => {
             loadingElement.dismiss();
-          }
-        );
-      }).bind(this)
-    )
+          });
+      });
   }
 
+  ngOnDestroy() {
+    if (this._bookingSubscription) {
+      this._bookingSubscription.unsubscribe();
+    }
+  }
 }

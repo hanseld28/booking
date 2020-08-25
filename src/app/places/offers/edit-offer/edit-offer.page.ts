@@ -1,4 +1,4 @@
-import { NavController, LoadingController } from '@ionic/angular';
+import { NavController, LoadingController, AlertController } from '@ionic/angular';
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
@@ -16,18 +16,23 @@ import { EditPlaceOffer } from './edit-place-offer.model';
 })
 export class EditOfferPage implements OnInit, OnDestroy {
   public place: Place;
+  public placeIdFromParamMap: string;
   public form: FormGroup;
+  public isLoading: boolean;
   private _editOfferPlaceSubscription: Subscription;
+
 
   constructor(
     private _route: ActivatedRoute,
     private _navController: NavController,
     private _placesService: PlacesService,
     private _router: Router,
-    private _loadingController: LoadingController
+    private _loadingController: LoadingController,
+    private _alertController: AlertController
   ) { }
 
   ngOnInit(): void {
+    this.isLoading = true;
     this.subscribeToParamMap();
   }
 
@@ -71,7 +76,6 @@ export class EditOfferPage implements OnInit, OnDestroy {
     this._route.paramMap
       .subscribe(
         paramMap => {
-          console.log(paramMap);
           this.findPlaceByIdWithParametersMap(paramMap)
         }
       );
@@ -107,13 +111,32 @@ export class EditOfferPage implements OnInit, OnDestroy {
       this._navController.navigateBack('/places/tabs/offers');
       return;
     }
-    const placeIdFromParam = this.recoveryPlaceIdInParametersMap(paramMap);
+    this.placeIdFromParamMap = this.recoveryPlaceIdInParametersMap(paramMap);
+    
     this._editOfferPlaceSubscription = this._placesService
-      .getPlaceById(placeIdFromParam)
-      .subscribe(place => {
-        this.place = place;
-        this.initializeForm();
-      });
+      .getPlaceById(this.placeIdFromParamMap)
+      .subscribe(
+        place => {
+          this.place = place;
+          this.initializeForm();
+          this.isLoading = false;
+        },
+        _error => {
+          this._alertController.create({
+            header: 'An error occured!',
+            message: 'Place could not be fetched. Please try again later.',
+            buttons: [{
+              text: 'Okay',
+              handler: () => {
+                this._router.navigate(['/places/tabs/offers'])
+              }
+            }]
+          })
+          .then(alertElement => {
+            alertElement.present();
+          })
+        } 
+      );
   }
   
   private recoveryPlaceIdInParametersMap(paramMap: ParamMap): string {

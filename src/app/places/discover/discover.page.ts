@@ -1,13 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 
-import { SegmentChangeEventDetail } from '@ionic/core';
-
 import { PlacesService } from '../places.service';
 
 import { Place } from '../place.model';
 import { Subscription } from 'rxjs';
 import { AuthService } from 'src/app/auth/auth.service';
-import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-discover',
@@ -20,6 +17,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   public relevantPlaces: Place[];
   private _placesSubscription: Subscription;
   private _filter: string;
+  public isLoading: boolean;
 
   constructor(
     private _placesService: PlacesService,
@@ -36,10 +34,13 @@ export class DiscoverPage implements OnInit, OnDestroy {
       });
   }
   
-  ngOnDestroy(): void {
-    if (this._placesSubscription) {
-      this._placesSubscription.unsubscribe();
-    }
+  ionViewWillEnter() {
+    this.isLoading = true;
+    this._placesService
+    .fetchPlaces()
+    .subscribe(() => {
+      this.isLoading = false;
+    });
   }
 
   onFilterUpdate(filter: string): void {
@@ -53,6 +54,12 @@ export class DiscoverPage implements OnInit, OnDestroy {
         }
       );
       this.listLoadedPlaces = this.relevantPlaces.slice(1);
+    }
+  }
+  
+  ngOnDestroy(): void {
+    if (this._placesSubscription) {
+      this._placesSubscription.unsubscribe();
     }
   }
 }

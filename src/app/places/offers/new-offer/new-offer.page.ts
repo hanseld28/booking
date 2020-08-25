@@ -28,20 +28,20 @@ export class NewOfferPage implements OnInit {
       return;
     }
 
-    this._loadingController.create({
+    this._loadingController
+    .create({
       message: 'Creating place...'
-    }).then(loadingELement => {
+    })
+    .then(loadingELement => {
       loadingELement.present();  
       const newPlaceOffer = this.extractNewPlaceOfferFoomFormValues(); 
       this._placesService
       .addPlace(newPlaceOffer)
-      .subscribe(
-        (function() {
-          this._loadingController.dismiss();
-          this.form.reset();
-          this._router.navigate(['/places/tabs/offers']);
-        }).bind(this)
-      );
+      .subscribe(() => {
+        this._loadingController.dismiss();
+        this.form.reset();
+        this._router.navigate(['/places/tabs/offers']);
+      });
     });
   }
 
